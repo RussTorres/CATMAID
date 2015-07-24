@@ -2219,7 +2219,8 @@ SkeletonAnnotations.SVGOverlay.prototype.updateNodes = function (callback,
         atnid = SkeletonAnnotations.getActiveNodeId();
       }
     }
-    // Include ID only in qery, if it is real
+    // Include ID only in request, if it is real. Otherwise, keep the active
+    // virtual node in the client and inject it into the result.
     var extraNodes;
     if (!SkeletonAnnotations.isRealNode(atnid)) {
       var n = self.nodes[atnid];
@@ -2245,8 +2246,6 @@ SkeletonAnnotations.SVGOverlay.prototype.updateNodes = function (callback,
     self.old_x = stackViewer.x;
     self.old_y = stackViewer.y;
 
-    // (stack.y - (stack.viewHeight / 2) / stack.scale) * stack.resolution.y + stack.translation.y
-
     var halfWidth =  (stackViewer.viewWidth  / 2) / stackViewer.scale,
         halfHeight = (stackViewer.viewHeight / 2) / stackViewer.scale;
 
@@ -2265,6 +2264,14 @@ SkeletonAnnotations.SVGOverlay.prototype.updateNodes = function (callback,
     var wx1 = stackViewer.primaryStack.stackToProjectX(z1, y1, x1),
         wy1 = stackViewer.primaryStack.stackToProjectY(z1, y1, x1),
         wz1 = stackViewer.primaryStack.stackToProjectZ(z1, y1, x1);
+
+    // As long as stack space Z coordinates are always clamped to the last
+    // section (i.e. if floor() is used instead of round() when transforming),
+    // there is no need to compensate for rounding mismatches of stack view's
+    // discrete Z coordinates (sections). Otherwise, the stack viewer's position
+    // could get larger than the project space position. And this would require
+    // to lower the bounding box's minimum by that difference to have all views
+    // show the same nodes.
 
     var params = {
       left: wx0,

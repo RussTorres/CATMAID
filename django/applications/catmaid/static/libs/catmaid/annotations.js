@@ -157,6 +157,8 @@
                       err).show();
                 }
 
+                CATMAID.Annotations.trigger(CATMAID.Annotations.EVENT_ANNOTATIONS_CHANGED);
+
                 // Let the neuron name service update itself and execute the
                 // callbackback after this is done
                 NeuronNameService.getInstance().refresh(function() {
@@ -210,9 +212,13 @@
             if (e.error) {
               new CATMAID.ErrorDialog(e.error, e.detail).show();
             } else {
+              // If the actual annotation was removed, update cache
+              if (e.deleted_annotation) CATMAID.annotations.remove(annotation_id);
+
               // Let the neuron name service update itself
               NeuronNameService.getInstance().refresh();
 
+              CATMAID.Annotations.trigger(CATMAID.Annotations.EVENT_ANNOTATIONS_CHANGED);
               if (callback) callback(e.message);
             }
           }
@@ -317,6 +323,19 @@
   };
 
   /**
+   * Remove an annotation from the cache.
+   */
+  AnnotationCache.prototype.remove = function(annotationID) {
+    var name = this.annotation_names[annotationID];
+    if (name) {
+      delete this.annotation_names[annotationID];
+    }
+    if (name in this.annotation_ids) {
+      delete this.annotation_ids[name];
+    }
+  };
+
+  /**
    * Add jQuery autocompletion for all cached annotations to the given input
    * element.
    */
@@ -331,5 +350,10 @@
   // Export the annotation cache constructor and a generally available instance.
   CATMAID.AnnotationCache = AnnotationCache;
   CATMAID.annotations = new AnnotationCache();
+
+  // Collect annotation related events in a dedicated object
+  CATMAID.Annotations = {};
+  CATMAID.Events.extend(CATMAID.Annotations);
+  CATMAID.Annotations.EVENT_ANNOTATIONS_CHANGED = "annotations_changed";
 
 })(CATMAID);
